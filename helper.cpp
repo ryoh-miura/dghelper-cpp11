@@ -24,6 +24,13 @@ type_name() {
   return own != nullptr ? own.get() : typeid(T).name();
 }
 
+string
+to_demangle_name(const char * funcname) {
+  unique_ptr<char, void(*)(void*)> own (
+              abi::__cxa_demangle(funcname, nullptr, nullptr, nullptr), ::free);
+  return own != nullptr ? own.get() : string("");
+}
+
 vector< string >
 split(string & s, const string delims) {
   vector<string> ret;
@@ -182,12 +189,34 @@ public:
   }
 };
 
+class Base {
+public:
+   virtual void vvfunc() {}
+};
+
+class Derived : public Base {};
+
 int main() {
   Caller __o(CALLER_EMBEDED);  
   cba<int, cba<double, int, int>, double > b;
   func();
   for (int i=0; i<3; ++i)
     new def();
+
+  Derived* pd = new Derived;
+  Base* pb = pd;
+  cout << to_demangle_name( typeid( pb ).name() )  << endl;   //prints " Base *"
+  cout << to_demangle_name( typeid( *pb ).name() ) << endl;   //prints " Derived"
+  cout << to_demangle_name( typeid( pd ).name() ) << endl;    //prints " Derived *"
+  cout << to_demangle_name( typeid( *pd ).name() ) << endl;   //prints " Derived"
+
+  cout << type_name<decltype(pb)>()  << endl;   //prints "Base *"
+  cout << type_name<decltype(*pb)>() << endl;   //prints "Base"
+  cout << type_name<decltype(pd )>() << endl;   //prints "Derived *"
+  cout << type_name<decltype(*pd)>()  << endl;  //prints "Derived"
+
+  delete pd;
+
   return 0;
 }
 #endif  // __MAIN__
