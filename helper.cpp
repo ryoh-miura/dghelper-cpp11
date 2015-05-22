@@ -19,8 +19,7 @@ template <class T>
 string
 type_name() {
   unique_ptr<char, void(*)(void*)> own (
-              abi::__cxa_demangle(typeid(T).name(), nullptr, nullptr, nullptr),
-              ::free);
+              abi::__cxa_demangle(typeid(T).name(), nullptr, nullptr, nullptr), ::free);
   return own != nullptr ? own.get() : typeid(T).name();
 }
 
@@ -29,6 +28,11 @@ to_demangle_name(const char * funcname) {
   unique_ptr<char, void(*)(void*)> own (
               abi::__cxa_demangle(funcname, nullptr, nullptr, nullptr), ::free);
   return own != nullptr ? own.get() : string("");
+}
+string
+to_demangle_name(string & funcname) {
+  const char * func = funcname.c_str();
+  return to_demangle_name(func);
 }
 
 vector< string >
@@ -75,30 +79,18 @@ public:
     for (auto line : lines) {
       // a sample line format:
       // 1         a.out          0x0000000104b5bf08 _Z8hogehogev + 24
-      // lineno    filename       address             funcname      func-offset      
+      // lineno    filename       address             funcname      func-offset
       vector<string> elems  = split(line, " ");
-      string funcname(elems[3]);
-      const char * name = elems[3].c_str();
-
-      int status;
-      char * demangled = abi::__cxa_demangle(name, 0, 0, &status);
-      if (NULL != demangled) {
-	funcname = demangled;
-	free(demangled);
-      }
-      // Did the following const char ptr need ...? 
-      const char * lineno = elems[0].c_str();
-      const char * addr = elems[2].c_str();
-      const char * offset = elems[5].c_str();
+      string funcname = to_demangle_name(elems[3]);
       info_.push_back(
-		      make_tuple(
-				 strtol(lineno, NULL, 10),  
-				 elems[1],
-				 static_cast<uint64_t>(strtoll( addr, NULL, 16) ),
-				 funcname,
-				 strtol(offset, NULL, 10)
-				 )
-		      );
+          make_tuple(
+            stol( elems[0] ),
+            elems[1],
+            static_cast<uint64_t>(stoll( elems[2], nullptr, 16 ) ),
+            funcname,
+            stol(elems[5])
+            )
+          );
       i++;
       if (i>=size-1) break;
     }
