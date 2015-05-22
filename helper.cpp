@@ -61,7 +61,7 @@ public:
   Backtrace(const int nframe=100) :
     info_(),  size_(-1) {
     void ** addr = static_cast<void**> ( alloca(sizeof(void*) * nframe) );
-    int size = backtrace(addr, nframe);
+    int size = ::backtrace(addr, nframe);
     if (size == nframe) {
       fprintf(stderr, "Check the backtrace's frame size\n");
       return;
@@ -81,13 +81,12 @@ public:
       // 1         a.out          0x0000000104b5bf08 _Z8hogehogev + 24
       // lineno    filename       address             funcname      func-offset
       vector<string> elems  = split(line, " ");
-      string funcname = to_demangle_name(elems[3]);
       info_.push_back(
           make_tuple(
             stol( elems[0] ),
             elems[1],
             static_cast<uint64_t>(stoll( elems[2], nullptr, 16 ) ),
-            funcname,
+            to_demangle_name( elems[3] ),
             stol(elems[5])
             )
           );
